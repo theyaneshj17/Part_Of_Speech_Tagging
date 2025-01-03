@@ -1,97 +1,100 @@
-# Part-of-Speech Tagging using HMM and Simple Model
-Part-of-Speech Tagging using Simple Model (Maximum Likelihood Estimation) and Hidden Markov Model (Viterbi Algorithm)
+# Part-of-Speech Tagging Using HMM and Simple Model
 
-### Abstraction of the Problem
+This project implements Part-of-Speech (POS) tagging using two models:  
+1. **Simple Model** (Maximum Likelihood Estimation).  
+2. **Hidden Markov Model** (HMM) with the Viterbi Algorithm.
 
-1. **Task**: Implement Part-of-Speech tagging using:
-   - Simple Model (Maximum Likelihood Estimation)
-   - Hidden Markov Model (Viterbi Algorithm)
+---
 
-2. **Input**: 
-   - Training data consisting of sentences with their POS tags
-   - Test sentences requiring POS tag prediction
+## Problem Abstraction
 
-3. **Output**:
-   - Predicted POS tags for each word in test sentences
-   - Posterior probability of the predicted sequence
+### Task:
+- Predict the POS tags for words in test sentences using:
+  - A **Simple Model** based on Maximum Likelihood Estimation.
+  - A **Hidden Markov Model** using the Viterbi Algorithm.
 
-### Algorithm Implementation
+### Inputs:
+- **Training Data**: Sentences annotated with their corresponding POS tags.
+- **Test Data**: Sentences requiring POS tag predictions.
 
-1. **Simple Model**:
-   - Maximum Likelihood Estimation
-   - P(tag|word) = P(word|tag) * P(tag)
-   - Assign tag based on the maxium probabilities for each and word, tag
+### Outputs:
+- **Predicted POS Tags**: One tag for each word in the test sentences.
+- **Posterior Probability**: Probability of the predicted sequence of tags.
 
-2. **Hidden Markov Model**:
-   - Implemented Viterbi Algorithm
-   - Created transition probabilities between previous tag and current tag 
-   - Created emission probabilities between tags and word
+---
 
+## Algorithm Details
 
-### Implementation Details
+### 1. Training Phase:
+For both models, probabilities and counts are precomputed from the training data (`bc.train`):
+- **Emission Counts/Matrix**: \( P(\text{word}|\text{tag}) \).
+- **Transition Counts/Matrix**: \( P(\text{tag}_i|\text{tag}_{i-1}) \), including start (`<S>`) and end (`</S>`) tags.
+- **Tag Probabilities**: \( P(\text{tag}) \), required for the Simple Model.
 
-1. **Training Phase**:
-   - During this, precalculate all the required probabilites / count for the data available in bc.train for both algorithms
+---
 
-   - Calculate emission counts and emission matrix (word|tag)
-   - Calculate transition counts and transition matrix(tag₂|tag₁) (Handles, start \<S> and end \</S> tags)
-   - Calculate P(Si) and P(Wi|Si), required for Simple Bayes.
+### 2. Simple Model:
+Implements Maximum Likelihood Estimation to compute \( P(\text{tag}|\text{word}) \):
+- **Logic**:
+  - \( P(\text{tag}|\text{word}) = P(\text{word}|\text{tag}) \times P(\text{tag}) \).
+  - For each word, assign the tag with the highest probability.
+  - Handles unknown words by defaulting to the 'noun' tag.
+- **Posterior Probability**:
+  - Calculated as the sum of log probabilities for the predicted sequence.
 
+---
 
-2. **Simple Model Implementation**:
-   - For each word:
-     - Computes P(Si|Wi) using P(Wi|Si) * P(Si), calculated above
-     - Selects tag with maximum probability
-     - Handles unknown words by defaulting to 'noun'
+### 3. Hidden Markov Model (HMM):
+Uses the **Viterbi Algorithm** for sequence prediction:
+- **Transition Probabilities**: Between tags \( P(\text{tag}_i|\text{tag}_{i-1}) \).
+- **Emission Probabilities**: Between tags and words \( P(\text{word}_i|\text{tag}_i) \).
+- **Logarithmic Probabilities**:
+  - Avoids underflow by working in log space for both transition and emission probabilities.
 
-3. **HMM Implementation**:
-  - Implements dynamic programming
-  - Constructs log probabilities to prevent underflow for both transition and emission probabilities:
-  - Handle Unknown Words:
-    - Add special 'Unk' token to vocabulary
-    - Extend emission matrix with extra column
-  - Handle initial probabilities for all tag:
-    - P(tag|word) = P(word|tag) * P(tag|\<S>)
-    - EmissionProb = EmissionMatrixModified[j][WordIndex]
-    - TransitionProb = TransitionMatrixModified[StartIndex][tagIndex[tag]]
-    - T[j, 0] = EmissionProb + TransitionProb
+#### Implementation Steps:
+1. **Initialization**:
+   - Start with initial probabilities \( P(\text{tag}_0|\text{<S>}) \times P(\text{word}_0|\text{tag}_0) \).
+   - Handle unknown words using a special 'Unk' token.
 
-  - Forward Logic:
-    - P(tag_i|word_i, tag_{i-1}) = P(word_i|tag_i) * P(tag_i|tag_{i-1}) * P(tag_{i-1})
-    - EmissionProb = EmissionMatrixModified[currTagIndex][WordIndex]
-    - TransitionProb = TransitionMatrixModified[prevTagFullIdx][currTagFullndex]
-    - priorProb = T[prevTagIndex, i-1]
-    - currprob = priorProb + TransitionProb + EmissionProb
-    - Store maximum probability for each current tag
-  - Backward Logic:
-    - Start with most probable tag of last word:
-    - Follow backpointers to reconstruct optimal 
-    - Reverse path to get correct order:
+2. **Forward Pass**:
+   - For each word in the sentence:
+     - Calculate \( P(\text{tag}_i|\text{word}_i, \text{tag}_{i-1}) = P(\text{word}_i|\text{tag}_i) \times P(\text{tag}_i|\text{tag}_{i-1}) \times P(\text{tag}_{i-1}) \).
+     - Store the maximum probability for each current tag.
 
-  - Joint Probability:
-    - Store final joint probability P(S,W):
-    - self.JointProb = T[maxLastTagIndex, lastWordIndex]
+3. **Backward Pass**:
+   - Trace back using pointers to reconstruct the optimal sequence.
+   - Reverse the sequence to obtain the correct order.
 
+4. **Joint Probability**:
+   - Compute the joint probability \( P(S, W) \), stored as \( T[\text{maxLastTagIndex}, \text{lastWordIndex}] \).
 
-4. **Posterior Probability**:
-   - Simple Model: Computes sum of log probabilities
-   - HMM: Returns joint probability from Viterbi
+#### Posterior Probability:
+- Retrieved directly from the joint probability computed by Viterbi.
 
-# Results
+---
 
-### Accuracy Scores
-After scoring 2,000 sentences with 29,442 words using bc.train and bc.test, the following accuracy metrics were obtained:
+## Results
 
-| Model            | Words Correct (%) | Sentences Correct (%) |
-|-------------------|-------------------|-----------------------|
-| **Ground Truth**  | 100.00%            | 100.00%                |
-| **Simple Model**  | 93.92%             | 47.55%                 |
-| **HMM Model**     | 95.09%             | 54.50%                 |
+### Evaluation Metrics:
+The models were evaluated using 2,000 sentences (29,442 words) from `bc.test` and scored against ground truth tags.
 
-### Conclusion
-The Hidden Markov Model (HMM) outperformed the Simple Model in both word-level and sentence-level accuracy. 
+| **Model**         | **Words Correct (%)** | **Sentences Correct (%)** |
+|--------------------|-----------------------|---------------------------|
+| **Ground Truth**   | 100.00%              | 100.00%                   |
+| **Simple Model**   | 93.92%               | 47.55%                    |
+| **HMM Model**      | 95.09%               | 54.50%                    |
 
-- **HMM Accuracy**:  
-  - **Word-level**: 95.09%  
-  - **Sentence-level**: 54.50%  
+### Observations:
+- The **HMM Model** outperformed the Simple Model in both word-level and sentence-level accuracy.
+- The HMM's use of sequence-level information improves predictions, especially for longer sentences.
 
+### Key Insights:
+- **HMM Accuracy**:
+  - **Word-Level**: 95.09%.
+  - **Sentence-Level**: 54.50%.
+- The Simple Model is less effective due to its independent treatment of words, whereas the HMM incorporates context through transitions.
+
+---
+
+## Conclusion
+The Hidden Markov Model (HMM) with the Viterbi Algorithm provides better accuracy for POS tagging compared to the Simple Model. Its ability to capture dependencies between consecutive tags makes it more suitable for sequence-based tasks.
