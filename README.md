@@ -8,82 +8,82 @@ The goal is to predict POS tags for words in test sentences and compute the post
 
 ---
 
-## Problem Abstraction  
+## Abstraction of the Problem
 
-1. **Task**:
-   - Implement Part-of-Speech tagging using:
-     - Simple Model (Maximum Likelihood Estimation)
-     - Hidden Markov Model (Viterbi Algorithm)
+1. **Task**: Implement Part-of-Speech tagging using:
+   - Simple Model (Maximum Likelihood Estimation)
+   - Hidden Markov Model (Viterbi Algorithm)
 
-2. **Input**:
-   - Training data consisting of sentences with their POS tags.
-   - Test sentences requiring POS tag prediction.
+2. **Input**: 
+   - Training data consisting of sentences with their POS tags
+   - Test sentences requiring POS tag prediction
 
 3. **Output**:
-   - Predicted POS tags for each word in test sentences.
-   - Posterior probability of the predicted sequence for both models.
+   - Predicted POS tags for each word in test sentences
+   - Posterior probability of the predicted sequence
 
----
+### Algorithm Implementation
 
-## Algorithm Implementation  
+1. **Simple Model**:
+   - Maximum Likelihood Estimation
+   - P(tag|word) = P(word|tag) * P(tag)
+   - Assign tag based on the maxium probabilities for each and word, tag
 
-### 1. **Simple Model (Maximum Likelihood Estimation)**  
-- **Formula**:  
-  \[
-  P(\text{tag} | \text{word}) = P(\text{word} | \text{tag}) \times P(\text{tag})
-  \]
-- **Approach**:  
-  - For each word:
-    - Compute \( P(\text{tag} | \text{word}) \) using precomputed emission probabilities \( P(\text{word} | \text{tag}) \) and tag probabilities \( P(\text{tag}) \).
-    - Assign the tag with the maximum probability.
-  - Handle unknown words by defaulting to 'noun'.  
+2. **Hidden Markov Model**:
+   - Implemented Viterbi Algorithm
+   - Created transition probabilities between previous tag and current tag 
+   - Created emission probabilities between tags and word
 
----
 
-### 2. **Hidden Markov Model (HMM - Viterbi Algorithm)**  
-- **Forward Logic**:
-  - Computes the most probable sequence of tags using dynamic programming.
-  - Transition probabilities \( P(\text{tag}_i | \text{tag}_{i-1}) \) and emission probabilities \( P(\text{word}_i | \text{tag}_i) \) are calculated for each word and tag pair.
-  - Log probabilities are used to prevent underflow.  
+### Implementation Details
 
-- **Backward Logic**:
-  - Starts with the most probable tag for the last word.
-  - Backtracks through the sequence using pointers to construct the optimal tag path.
+1. **Training Phase**:
+   - During this, precalculate all the required probabilites / count for the data available in bc.train for both algorithms
 
-- **Unknown Word Handling**:
-  - Special 'Unknown' token added to the vocabulary.
-  - Emission matrix extended with an extra column to handle unknown words.
+   - Calculate emission counts and emission matrix (word|tag)
+   - Calculate transition counts and transition matrix(tag₂|tag₁) (Handles, start \<S> and end \</S> tags)
+   - Calculate P(Si) and P(Wi|Si), required for Simple Bayes.
 
-- **Posterior Probability**:
-  - Stores the joint probability \( P(S, W) \) using the final forward probabilities from the Viterbi matrix.
 
----
+2. **Simple Model Implementation**:
+   - For each word:
+     - Computes P(Si|Wi) using P(Wi|Si) * P(Si), calculated above
+     - Selects tag with maximum probability
+     - Handles unknown words by defaulting to 'noun'
 
-## Implementation Details  
+3. **HMM Implementation**:
+  - Implements dynamic programming
+  - Constructs log probabilities to prevent underflow for both transition and emission probabilities:
+  - Handle Unknown Words:
+    - Add special 'Unk' token to vocabulary
+    - Extend emission matrix with extra column
+  - Handle initial probabilities for all tag:
+    - P(tag|word) = P(word|tag) * P(tag|\<S>)
+    - EmissionProb = EmissionMatrixModified[j][WordIndex]
+    - TransitionProb = TransitionMatrixModified[StartIndex][tagIndex[tag]]
+    - T[j, 0] = EmissionProb + TransitionProb
 
-### Training Phase:
-- Precomputed the following from the training data:
-  1. **Emission Counts**: \( P(\text{word} | \text{tag}) \).  
-  2. **Transition Counts**: \( P(\text{tag}_i | \text{tag}_{i-1}) \), including special start `<S>` and end `</S>` tags.  
-  3. **Tag Probabilities**: \( P(\text{tag}) \), required for the Simple Model.  
+  - Forward Logic:
+    - P(tag_i|word_i, tag_{i-1}) = P(word_i|tag_i) * P(tag_i|tag_{i-1}) * P(tag_{i-1})
+    - EmissionProb = EmissionMatrixModified[currTagIndex][WordIndex]
+    - TransitionProb = TransitionMatrixModified[prevTagFullIdx][currTagFullndex]
+    - priorProb = T[prevTagIndex, i-1]
+    - currprob = priorProb + TransitionProb + EmissionProb
+    - Store maximum probability for each current tag
+  
+  - Backward Logic:
+    - Start with most probable tag of last word:
+    - Follow backpointers to reconstruct optimal 
+    - Reverse path to get correct order:
 
-### Program Structure:
-1. **Simple Model Implementation**:
-   - Compute \( P(\text{tag} | \text{word}) = P(\text{word} | \text{tag}) \times P(\text{tag}) \).
-   - Assign the tag with the maximum probability for each word.
-   - Handle unknown words by defaulting to 'noun'.
+  - Joint Probability:
+    - Store final joint probability P(S,W):
+    - self.JointProb = T[maxLastTagIndex, lastWordIndex]
 
-2. **HMM Implementation**:
-   - Use dynamic programming to implement the Viterbi Algorithm:
-     - **Forward Pass**:
-       \[
-       P(\text{tag}_i | \text{word}_i, \text{tag}_{i-1}) = P(\text{word}_i | \text{tag}_i) \times P(\text{tag}_i | \text{tag}_{i-1}) \times P(\text{tag}_{i-1})
-       \]
-       - For each word, compute probabilities for all possible tags and store the maximum probability for each tag.
-     - **Backward Pass**:
-       - Trace back the path of the most probable tag sequence.
-   - Joint probability \( P(S, W) \) is stored as the product of all forward probabilities.
 
+4. **Posterior Probability**:
+   - Simple Model: Computes sum of log probabilities
+   - HMM: Returns joint probability from Viterbi
 ---
 
 ## Results  
